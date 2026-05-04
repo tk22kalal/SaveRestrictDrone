@@ -31,13 +31,27 @@ async def get_msg(userbot, client, bot, sender, edit_id, msg_link, i):
     round_message = False
     if "?single" in msg_link:
         msg_link = msg_link.split("?single")[0]
-    msg_id = int(msg_link.split("/")[-1]) + int(i)
+
+    parts = msg_link.rstrip("/").split("/")
+
+    # Strip range suffix from the last segment (e.g. "22-23" → "22")
+    last_seg = parts[-1].split("-")[0]
+    msg_id = int(last_seg) + int(i)
+
     height, width, duration, thumb_path = 90, 90, 0, None
-    if 't.me/c/' or 't.me/b/' in msg_link:
+
+    if 't.me/c/' in msg_link or 't.me/b/' in msg_link:
         if 't.me/b/' in msg_link:
-            chat = str(msg_link.split("/")[-2])
+            # t.me/b/USERNAME/MSGID  →  parts[-2] is username
+            chat = str(parts[-2])
         else:
-            chat = int('-100' + str(msg_link.split("/")[-2]))
+            # Standard:    t.me/c/CHATID/MSGID        → parts[-2] is CHATID
+            # Supergroup:  t.me/c/CHATID/TOPICID/MSGID → parts[-3] is CHATID
+            # Detect by checking if there are 7 parts (https://t.me/c/X/Y/Z)
+            if len(parts) >= 7:
+                chat = int('-100' + str(parts[-3]))
+            else:
+                chat = int('-100' + str(parts[-2]))
         file = ""
         try:
             msg = await userbot.get_messages(chat, msg_id)
