@@ -13,7 +13,7 @@ Supports:
 import time, os, asyncio
 
 from .. import bot as Drone
-from .. import userbot, Bot, AUTH
+from .. import userbot, Bot, AUTH, API_ID, API_HASH
 from main.plugins.pyroplug import get_bulk_msg, get_msg
 from main.plugins.helpers import get_link, screenshot
 from main.plugins.login import get_user_session
@@ -146,7 +146,6 @@ async def _batch(event):
     user_session_str = get_user_session(user_id)
     personal_acc = None
     if user_session_str:
-        from .. import API_ID, API_HASH
         try:
             personal_acc = Client(
                 f"batch_user_{user_id}",
@@ -156,10 +155,21 @@ async def _batch(event):
             )
             await personal_acc.start()
         except Exception as e:
-            await Drone.send_message(user_id, f"Could not start your session: `{e}`\nFalling back to global userbot.")
+            await Drone.send_message(
+                user_id,
+                f"Could not start your session: `{e}`\nFalling back to global userbot."
+            )
             personal_acc = None
 
     acc = personal_acc if personal_acc else userbot
+
+    if acc is None:
+        active_batches.pop(user_id, None)
+        return await Drone.send_message(
+            user_id,
+            "No user session available.\n"
+            "Please use /login to log in with your phone number first."
+        )
 
     try:
         if supergroup_parsed:
